@@ -90,3 +90,9 @@ meson setup builddir \
     --wrap-mode=nofallback
 ninja -v -C builddir -j ${CPU_COUNT}
 ninja -C builddir install -j ${CPU_COUNT}
+
+if [[ "$CONDA_BUILD_CROSS_COMPILATION" == "1" ]]; then
+  # Install GIR/typelib files from the native build
+  cp -ap introspection/lib/girepository-1.0 $PREFIX/lib
+  cp -ap introspection/share/gir-1.0 $PREFIX/share
+fi
