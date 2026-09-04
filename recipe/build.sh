@@ -72,14 +72,14 @@ if [[ "$CONDA_BUILD_CROSS_COMPILATION" == "1" ]]; then
     ninja -C native-build install -j ${CPU_COUNT}
 
     # Store generated introspection information
-    mkdir -p introspection/lib introspection/share
-    cp -ap $BUILD_PREFIX/lib/girepository-1.0 introspection/lib
-    cp -ap $BUILD_PREFIX/share/gir-1.0 introspection/share
+    mkdir -p introspection/gir introspection/typelib
+    cp -vap $BUILD_PREFIX/lib/girepository-1.0/GdkPix*.typelib introspection/typelib/
+    cp -vap $BUILD_PREFIX/share/gir-1.0/GdkPix*.gir introspection/gir/
   )
   export GI_CROSS_LAUNCHER=$BUILD_PREFIX/libexec/gi-cross-launcher-load.sh
-  export MESON_ARGS="${MESON_ARGS} -Dintrospection=disabled"
+  meson_config_args+=(-Dintrospection=disabled)
 else
-  export MESON_ARGS="${MESON_ARGS} -Dintrospection=enabled"
+  meson_config_args+=(-Dintrospection=enabled)
 fi
 
 meson setup builddir \
@@ -93,6 +93,7 @@ ninja -C builddir install -j ${CPU_COUNT}
 
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" == "1" ]]; then
   # Install GIR/typelib files from the native build
-  cp -ap introspection/lib/girepository-1.0 $PREFIX/lib
-  cp -ap introspection/share/gir-1.0 $PREFIX/share
+  mkdir -p $PREFIX/lib/girepository-1.0 $PREFIX/share/gir-1.0
+  cp -vap introspection/typelib/* $PREFIX/lib/girepository-1.0/
+  cp -vap introspection/gir/* $PREFIX/share/gir-1.0/
 fi
