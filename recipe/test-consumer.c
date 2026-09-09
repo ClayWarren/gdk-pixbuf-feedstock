@@ -6,7 +6,11 @@ static void roundtrip(GdkPixbuf *source, const char *format, gboolean lossless)
 {
     GError *error = NULL;
     char *filename = g_strdup_printf("gdk-pixbuf consumer.%s", format);
-    g_assert_true(gdk_pixbuf_save(source, filename, format, &error, NULL));
+    if (strcmp(format, "tiff") == 0)
+        g_assert_true(gdk_pixbuf_save(source, filename, format, &error,
+                                     "x-dpi", "300", "y-dpi", "600", NULL));
+    else
+        g_assert_true(gdk_pixbuf_save(source, filename, format, &error, NULL));
     g_assert_no_error(error);
 
     GdkPixbuf *loaded = gdk_pixbuf_new_from_file(filename, &error);
@@ -14,14 +18,23 @@ static void roundtrip(GdkPixbuf *source, const char *format, gboolean lossless)
     g_assert_nonnull(loaded);
     g_assert_cmpint(gdk_pixbuf_get_width(loaded), ==, 3);
     g_assert_cmpint(gdk_pixbuf_get_height(loaded), ==, 2);
+    if (strcmp(format, "tiff") == 0) {
+        g_assert_cmpstr(gdk_pixbuf_get_option(loaded, "x-dpi"), ==, "300");
+        g_assert_cmpstr(gdk_pixbuf_get_option(loaded, "y-dpi"), ==, "600");
+    }
     if (lossless) {
-        g_assert_cmpint(gdk_pixbuf_get_n_channels(loaded), ==, 3);
+        int channels = gdk_pixbuf_get_n_channels(loaded);
+        g_assert_true(channels == 3 || channels == 4);
         for (int y = 0; y < 2; ++y) {
             const guchar *expected = gdk_pixbuf_read_pixels(source)
                 + y * gdk_pixbuf_get_rowstride(source);
             const guchar *actual = gdk_pixbuf_read_pixels(loaded)
                 + y * gdk_pixbuf_get_rowstride(loaded);
-            g_assert_cmpmem(expected, 9, actual, 9);
+            for (int x = 0; x < 3; ++x) {
+                g_assert_cmpmem(expected + x * 3, 3, actual + x * channels, 3);
+                if (channels == 4)
+                    g_assert_cmpint(actual[x * channels + 3], ==, 255);
+            }
         }
     }
     g_print("PASS: installed %s encoder and decoder\n", format);

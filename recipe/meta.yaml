@@ -10,6 +10,8 @@ package:
 source:
   url: http://ftp.gnome.org/pub/gnome/sources/{{ name }}/{{ '.'.join(version.split('.')[:2]) }}/{{ name }}-{{ version }}.tar.xz
   sha256: 919f529512961a12e81cd4b4b466a48c3933469e7f9a310c6513cd4fb252ba3c
+  patches:
+    - patches/tiff-windows-file-descriptor.patch  # [win]
 
 build:
   number: 3
