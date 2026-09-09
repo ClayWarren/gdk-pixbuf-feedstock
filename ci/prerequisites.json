@@ -1,0 +1,38 @@
+[
+  {
+    "artifact": 10087430428,
+    "repository": "gobject-introspection",
+    "file": "g-ir-build-tools-1.86.0-py314h9374f99_4.conda",
+    "sha256": "8166e2320d62ae79fb5bb270035994800f1800048fb0c9c3ab3dd8d6cfcda7fb"
+  },
+  {
+    "artifact": 10087430428,
+    "repository": "gobject-introspection",
+    "file": "g-ir-host-tools-1.86.0-h5ce275a_4.conda",
+    "sha256": "4557ed6f66a75b2a214f4d2055a0417059082989e578fe8e9f7253319b304880"
+  },
+  {
+    "artifact": 10087430428,
+    "repository": "gobject-introspection",
+    "file": "gobject-introspection-1.86.0-py314h26e15ad_4.conda",
+    "sha256": "9f4217bb915871323d8daeaffb101b6807a44f25bfab39147388ed52be4c8f38"
+  },
+  {
+    "artifact": 10087430428,
+    "repository": "gobject-introspection",
+    "file": "libgirepository-1.86.0-hf750528_4.conda",
+    "sha256": "70e0df14d082520bace52d530bd9e6a9ce755706882cde8e788b366713e95b9e"
+  },
+  {
+    "artifact": 10085932435,
+    "repository": "cairo",
+    "file": "cairo-1.18.4-h39bda8e_3.conda",
+    "sha256": "e308c353aa1f728445c1c60eb061fddf7a8ab7001c975275cb936d53f2322a09"
+  },
+  {
+    "artifact": 10085155281,
+    "repository": "fontconfig",
+    "file": "fontconfig-2.18.3-hb7620e2_2.conda",
+    "sha256": "24ff81517612d8976a970c16eeb490e14acaff92b6e8910700353e7aee2dda4d"
+  }
+]

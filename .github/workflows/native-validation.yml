@@ -1,0 +1,83 @@
+name: Native Windows GdkPixbuf validation (fork only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  test:
+    if: github.repository == 'ClayWarren/gdk-pixbuf-feedstock'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {config: win_arm64_, subdir: win-arm64, runner: windows-11-arm}
+          - {config: win_64_, subdir: win-64, runner: windows-2022}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify runner and prepare build orchestration
+        shell: pwsh
+        run: |
+          $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+          $expected = if ('${{ matrix.subdir }}' -eq 'win-arm64') { 'Arm64' } else { 'X64' }
+          if ($arch -ne $expected) { throw "Expected $expected OS, got $arch" }
+          Write-Host "Native OS and target: $arch / ${{ matrix.subdir }}"
+          Invoke-WebRequest https://github.com/mamba-org/micromamba-releases/releases/download/1.5.10-0/micromamba-win-64 -OutFile "$env:RUNNER_TEMP\micromamba.exe"
+      - name: Download retained prerequisite artifacts
+        if: matrix.subdir == 'win-arm64'
+        shell: cmd
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/ClayWarren/gobject-introspection-feedstock/actions/artifacts/10087430428/zip > "%RUNNER_TEMP%\10087430428.zip"
+          if errorlevel 1 exit /b 1
+          gh api repos/ClayWarren/cairo-feedstock/actions/artifacts/10085932435/zip > "%RUNNER_TEMP%\10085932435.zip"
+          if errorlevel 1 exit /b 1
+          gh api repos/ClayWarren/fontconfig-feedstock/actions/artifacts/10085155281/zip > "%RUNNER_TEMP%\10085155281.zip"
+          if errorlevel 1 exit /b 1
+      - name: Verify packages and stage local prerequisite channel
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path C:\gdk-local\${{ matrix.subdir }} -Force | Out-Null
+          if ('${{ matrix.subdir }}' -eq 'win-arm64') {
+            $items = Get-Content ci/prerequisites.json -Raw | ConvertFrom-Json
+            foreach ($id in ($items.artifact | Sort-Object -Unique)) {
+              Expand-Archive "$env:RUNNER_TEMP\$id.zip" "$env:RUNNER_TEMP\$id"
+            }
+            foreach ($item in $items) {
+              $package = @(Get-ChildItem "$env:RUNNER_TEMP\$($item.artifact)" -Recurse -Filter $item.file)
+              if ($package.Count -ne 1) { throw "Expected one $($item.file)" }
+              $hash = (Get-FileHash $package[0].FullName -Algorithm SHA256).Hash.ToLower()
+              if ($hash -ne $item.sha256) { throw "Wrong hash: $($item.file) $hash" }
+              Write-Host "Verified $($item.file): $hash"
+              Copy-Item $package[0].FullName C:\gdk-local\win-arm64
+            }
+          }
+      - name: Build and execute upstream and installed-package tests
+        shell: cmd
+        run: |
+          set "CONDA_SUBDIR=win-64"
+          "%RUNNER_TEMP%\micromamba.exe" create -y -p C:\gdk-tools -c conda-forge conda-build conda-index
+          if errorlevel 1 exit /b 1
+          call C:\gdk-tools\condabin\conda.bat activate C:\gdk-tools
+          if errorlevel 1 exit /b 1
+          set "CONDA_SUBDIR=${{ matrix.subdir }}"
+          set "CONDA_SOLVER=libmamba"
+          set "CONDA_CHANNEL_PRIORITY=strict"
+          call conda index C:\gdk-local
+          if errorlevel 1 exit /b 1
+          call conda build recipe -m .ci_support\${{ matrix.config }}.yaml --croot C:\gdk-build --output-folder C:\gdk-output --no-anaconda-upload --no-remove-work-dir --override-channels -c file:///C:/gdk-local -c conda-forge
+          if errorlevel 1 exit /b 1
+      - name: Retain packages and upstream test logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: gdk-pixbuf-${{ matrix.subdir }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            C:/gdk-output/**/*.conda
+            C:/gdk-build/**/meson-logs/testlog*
+            C:/gdk-build/broken/*.conda
