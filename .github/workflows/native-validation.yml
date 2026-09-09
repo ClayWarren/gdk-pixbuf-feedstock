@@ -72,6 +72,15 @@ jobs:
           if errorlevel 1 exit /b 1
           call conda build recipe -m .ci_support\${{ matrix.config }}.yaml --croot C:\gdk-build --output-folder C:\gdk-output --no-anaconda-upload --no-remove-work-dir --override-channels -c file:///C:/gdk-local -c conda-forge
           if errorlevel 1 exit /b 1
+      - name: Stage packages and upstream test logs
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path native-results -Force | Out-Null
+          $paths = @('C:\gdk-output\${{ matrix.subdir }}\*.conda', 'C:\gdk-output\broken\*.conda', 'C:\gdk-build\broken\*.conda', 'C:\gdk-build\gdk-pixbuf_*\work\builddir\meson-logs\testlog*')
+          foreach ($path in $paths) {
+            Get-ChildItem $path -ErrorAction SilentlyContinue | Copy-Item -Destination native-results
+          }
       - name: Retain packages and upstream test logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -79,7 +88,4 @@ jobs:
           name: gdk-pixbuf-${{ matrix.subdir }}
           retention-days: 14
           if-no-files-found: warn
-          path: |
-            C:/gdk-output/**/*.conda
-            C:/gdk-build/**/meson-logs/testlog*
-            C:/gdk-build/broken/*.conda
+          path: native-results/*
