@@ -65,6 +65,7 @@ test:
     - cmake  # [win]
     - ninja  # [win]
     - glib  # [win]
+    - zlib  # [win]
   commands:
     - gdk-pixbuf-csource --version
     - gdk-pixbuf-query-loaders
