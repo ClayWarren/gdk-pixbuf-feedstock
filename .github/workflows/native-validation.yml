@@ -1,5 +1,7 @@
 name: Native Windows GdkPixbuf validation (fork only)
 on:
+  push:
+    branches: [codex/windows-arm64-validation]
   workflow_dispatch:
 permissions:
   contents: read
