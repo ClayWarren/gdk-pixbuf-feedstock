@@ -1,0 +1,27 @@
+Subject: [PATCH] tiff: honor libtiff's Windows CRT file-descriptor interface
+
+With AVOID_WIN32_FILEIO, TIFFFdOpen expects a CRT descriptor. Passing a
+Win32 HANDLE invokes the CRT invalid-parameter handler when loading TIFFs.
+Duplicate the descriptor so TIFFClose does not close the caller's stream.
+
+--- a/gdk-pixbuf/io-tiff.c
++++ b/gdk-pixbuf/io-tiff.c
+@@ -351,6 +351,18 @@
+         lseek (fd, 0, SEEK_SET);
+ #ifndef G_OS_WIN32
+         tiff = TIFFFdOpen (fd, "libpixbuf-tiff", "r");
++#elif defined(AVOID_WIN32_FILEIO)
++        /* This libtiff uses CRT descriptors, not Win32 HANDLEs. Duplicate
++         * the descriptor because TIFFClose() and our caller both close it.
++         */
++        {
++                int tiff_fd = _dup (fd);
++                if (tiff_fd >= 0) {
++                        tiff = TIFFFdOpen (tiff_fd, "libpixbuf-tiff", "r");
++                        if (tiff == NULL)
++                                _close (tiff_fd);
++                }
++        }
+ #else
+         /* W32 version of this function takes HANDLE.
+          * What's worse, the caller will close the file,
