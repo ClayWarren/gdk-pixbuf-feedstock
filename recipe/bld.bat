@@ -33,5 +33,8 @@ if errorlevel 1 exit 1
 ninja -v -C builddir -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
+"%BUILD_PREFIX%\Scripts\meson.exe" test -C builddir --print-errorlogs
+if errorlevel 1 exit 1
+
 ninja -C builddir install -j %CPU_COUNT%
 if errorlevel 1 exit 1
